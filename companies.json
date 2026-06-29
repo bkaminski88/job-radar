@@ -1,0 +1,28 @@
+{
+  "_note": "Some original entries (openai, notion, plaid, and likely others) turned out to be hosted on Ashby, not Greenhouse/Lever -- confirmed via live 404s on a real run. They've been removed rather than left broken. Adding an Ashby fetcher is a natural stage-1.5 follow-up (see README).",
+  "greenhouse": [
+    "anthropic",
+    "airtable",
+    "databricks",
+    "gitlab",
+    "stripe",
+    "asana",
+    "figma"
+  ],
+  "lever": [
+    "netflix"
+  ],
+  "keywords": [
+    "automation engineer",
+    "workflow automation",
+    "ai automation",
+    "agentic",
+    "ai agent",
+    "applied ai engineer",
+    "rpa",
+    "integration engineer",
+    "llm engineer",
+    "machine learning engineer",
+    "ml engineer"
+  ]
+}
