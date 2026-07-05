@@ -22,7 +22,14 @@ CREATE TABLE IF NOT EXISTS seen_jobs (
     title TEXT NOT NULL,
     location TEXT,
     url TEXT,
-    first_seen_at TEXT NOT NULL DEFAULT (datetime('now'))
+    first_seen_at TEXT NOT NULL DEFAULT (datetime('now')),
+    prefilter_passed INTEGER,   -- 0/1, Stage 2 rule-based prefilter result
+    prefilter_reasons TEXT,     -- JSON-encoded list of strings
+    llm_score INTEGER,          -- 1-10, NULL if never scored (e.g. prefilter rejected)
+    llm_recommendation TEXT,    -- strong_match / worth_a_look / marginal / poor_fit / error
+    llm_reasoning TEXT,
+    llm_flags TEXT,             -- JSON-encoded list of strings
+    alerted INTEGER DEFAULT 0   -- whether this job was actually sent to Discord
 );
 """
 
@@ -75,6 +82,41 @@ def filter_new_jobs(jobs: list[dict]) -> list[dict]:
                 )
         conn.commit()
     return new_jobs
+
+
+def update_fit_result(job_key: str, fit_row: dict) -> None:
+    """
+    Write Stage 2 fit-scoring results back to the row for an already-inserted
+    job (filter_new_jobs already created the row with the base columns; this
+    fills in the prefilter/LLM columns afterward).
+
+    fit_row: dict produced by fit_pipeline.evaluation_to_db_row(), expected
+    keys: prefilter_passed, prefilter_reasons, llm_score, llm_recommendation,
+    llm_reasoning, llm_flags, alerted.
+    """
+    with get_conn() as conn:
+        conn.execute(
+            """UPDATE seen_jobs
+               SET prefilter_passed = ?,
+                   prefilter_reasons = ?,
+                   llm_score = ?,
+                   llm_recommendation = ?,
+                   llm_reasoning = ?,
+                   llm_flags = ?,
+                   alerted = ?
+               WHERE job_key = ?""",
+            (
+                fit_row["prefilter_passed"],
+                fit_row["prefilter_reasons"],
+                fit_row["llm_score"],
+                fit_row["llm_recommendation"],
+                fit_row["llm_reasoning"],
+                fit_row["llm_flags"],
+                fit_row["alerted"],
+                job_key,
+            ),
+        )
+        conn.commit()
 
 
 def count_seen() -> int:

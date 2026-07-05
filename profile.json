@@ -1,0 +1,57 @@
+{
+  "target_titles": [
+    "AI Enablement Lead",
+    "AI Enablement Engineer",
+    "AI Enablement Specialist",
+    "AI Automation Engineer",
+    "Applied AI Engineer",
+    "AI Integration Specialist",
+    "Forward Deployed Engineer",
+    "AI Engineer",
+    "Automation Engineer",
+    "Solutions Engineer AI",
+    "Agentic"
+  ],
+  "required_keywords_any": [
+    "AI",
+    "automation",
+    "agent",
+    "agentic",
+    "LLM",
+    "enablement",
+    "Claude",
+    "OpenAI",
+    "machine learning",
+    "workflow"
+  ],
+  "remote_required": true,
+  "remote_reject_phrases": [
+    "on-site",
+    "onsite",
+    "in-office",
+    "relocat",
+    "must reside in",
+    "hybrid"
+  ],
+  "remote_allow_if_hybrid_in_area": ["Atlanta", "Georgia", "GA"],
+  "salary_floor": 115000,
+  "red_flag_phrases": [
+    "fast-paced",
+    "fast paced",
+    "wear many hats",
+    "rockstar",
+    "ninja",
+    "unlimited PTO but",
+    "high-conflict",
+    "always-on",
+    "willing to work long hours"
+  ],
+  "avoid_title_keywords": [
+    "Director",
+    "VP",
+    "People Manager",
+    "Manager of Managers",
+    "Head of People"
+  ],
+  "salary_floor_note": "If salary is not posted, do not reject on this basis alone - flag as unknown for LLM stage."
+}

@@ -19,7 +19,19 @@ DISCORD_BATCH_LIMIT = 10  # keep messages readable; split larger batches
 
 def _format_job_line(job: dict) -> str:
     location = f" — {job['location']}" if job.get("location") else ""
-    return f"**{job['title']}** at {job['company']}{location}\n{job.get('url', '')}"
+    line = f"**{job['title']}** at {job['company']}{location}\n{job.get('url', '')}"
+
+    # Stage 2: jobs that went through fit_pipeline.evaluate_job() carry these
+    # keys (see main.py). Plain Stage 1 jobs won't have them — render either way.
+    if job.get("llm_score") is not None:
+        line += f"\nFit: {job['llm_score']}/10 ({job.get('llm_recommendation', 'n/a')})"
+        if job.get("llm_reasoning"):
+            line += f"\n_{job['llm_reasoning']}_"
+        flags = job.get("llm_flags") or []
+        if flags:
+            line += f"\nFlags: {', '.join(flags)}"
+
+    return line
 
 
 def send_discord_notification(jobs: list[dict], webhook_url: str | None = None) -> None:
