@@ -1,0 +1,15 @@
+I am writing to express my interest in the AI Automation Engineer position at TestCo Stage3 Validation. I am a builder at heart, and I come alive designing agentic workflows, engineering tool integrations, and creating human-in-the-loop systems that drive measurable operational impact. The opportunity to focus on internal automation as an IC contributor aligns directly with the work I do best.
+
+Over the past two years, I have built production agentic systems that connect enterprise tools and automate operational workflows while maintaining rigorous human oversight. I extended and scaled an AI agent operating system on CoWork Frontier, building more than 20 production skills covering daily lifecycle automation, self-evaluation loops, dataset validation, and effort estimation. These skills are in active use by my team and have been adopted by other departments. I built a self-improving evaluation framework that verifies deliverables against explicit rules, captures surprises, and logs findings to persistent per-skill learnings files, allowing agents to accumulate operational knowledge without unchecked self-modification. Anti-fabrication guardrails and human-in-the-loop approval gates are built into every skill by design.
+
+I have engineered integrations across enterprise platforms that lack native APIs, including Power BI connections to ConnectWise and Monday.com, and built an end-to-end sentiment analysis pipeline using Power Automate to capture email interactions and process them through Python. I recently completed a self-directed Amazon Q Business proof of concept, provisioning an AWS account, connecting an S3 knowledge base and live Jira board via API token authentication, and debugging an S3 region mismatch independently. This project demonstrated both platform learning capability and practical integration skills relevant to enterprise automation work.
+
+I facilitated a company AI Hackathon using an Outcome-First Agent Design Framework, resulting in two skills that shipped to production and are in active use supporting project workflows and leadership meetings. I co-designed a Chief of Staff AI with senior leadership, built collaboratively with executives who chose and created the skills together, including a live-refreshing dashboard tracking work and decisions in real time.
+
+I am newer to low-code automation platforms specifically but familiar with the underlying patterns through hands-on Power Automate work and am currently learning Workato. The Amazon Q Business proof of concept reflects how I approach unfamiliar platforms: I build working systems, debug independently, and move quickly from setup to functional output.
+
+I am seeking an IC-focused role where building and teaching are the core of the job, at a remote-first company whose direction and culture I can genuinely believe in and contribute to long term. I would welcome the opportunity to discuss how my experience building agentic workflows with human-in-the-loop design can support TestCo Stage3 Validation.
+
+Thank you for your consideration.
+
+Brian Kaminski
