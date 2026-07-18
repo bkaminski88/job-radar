@@ -13,6 +13,9 @@ as env vars / repo secrets.
 import os
 import sqlite3
 import requests
+from dotenv import load_dotenv
+
+load_dotenv()
 
 DB_PATH = "jobs.db"
 DISCORD_BOT_TOKEN = os.environ["DISCORD_BOT_TOKEN"]

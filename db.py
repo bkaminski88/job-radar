@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS seen_jobs (
     title TEXT NOT NULL,
     location TEXT,
     url TEXT,
+    description TEXT,           -- full job description text, needed by Stage 3 drafting
     first_seen_at TEXT NOT NULL DEFAULT (datetime('now')),
     prefilter_passed INTEGER,   -- 0/1, Stage 2 rule-based prefilter result
     prefilter_reasons TEXT,     -- JSON-encoded list of strings
@@ -32,6 +33,10 @@ CREATE TABLE IF NOT EXISTS seen_jobs (
     alerted INTEGER DEFAULT 0   -- whether this job was actually sent to Discord
 );
 """
+# NOTE: CREATE TABLE IF NOT EXISTS only matters for brand-new databases.
+# If you're applying this schema change to an EXISTING jobs.db, this alone
+# won't add the new `description` column — run
+# migrate_add_description_and_fit_columns.py once against your existing file.
 
 
 @contextmanager
@@ -69,8 +74,9 @@ def filter_new_jobs(jobs: list[dict]) -> list[dict]:
             if existing is None:
                 new_jobs.append(job)
                 conn.execute(
-                    """INSERT INTO seen_jobs (job_key, source, company, title, location, url)
-                       VALUES (?, ?, ?, ?, ?, ?)""",
+                    """INSERT INTO seen_jobs
+                       (job_key, source, company, title, location, url, description)
+                       VALUES (?, ?, ?, ?, ?, ?, ?)""",
                     (
                         job["job_key"],
                         job["source"],
@@ -78,6 +84,7 @@ def filter_new_jobs(jobs: list[dict]) -> list[dict]:
                         job["title"],
                         job.get("location", ""),
                         job.get("url", ""),
+                        job.get("description", ""),
                     ),
                 )
         conn.commit()
