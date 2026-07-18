@@ -30,18 +30,20 @@ def slugify(text: str) -> str:
 def get_approved_drafts(conn: sqlite3.Connection):
     cur = conn.cursor()
     cur.execute("""
-        SELECT d.id, d.job_id, d.resume_md, d.cover_letter_md,
+        SELECT d.id, d.resume_md, d.cover_letter_md, d.framing_notes,
                sj.title, sj.company
         FROM drafts d
-        JOIN seen_jobs sj ON sj.id = d.job_id
+        JOIN seen_jobs sj ON sj.job_key = d.job_key
         WHERE d.status = 'approved'
     """)
     return cur.fetchall()
 
 
-def write_files(job_id: int, title: str, company: str,
-                 resume_md: str, cover_letter_md: str) -> str:
-    folder_name = f"{slugify(company)}_{job_id}"
+def write_files(draft_id: int, title: str, company: str, resume_md: str,
+                 cover_letter_md: str, framing_notes: str) -> str:
+    # Use draft_id (not job_key) for the folder name — job_key looks like
+    # "greenhouse:company:12345" and colons aren't valid in Windows paths.
+    folder_name = f"{slugify(company)}_{draft_id}"
     folder_path = os.path.join(OUTPUT_ROOT, folder_name)
     os.makedirs(folder_path, exist_ok=True)
 
@@ -50,6 +52,9 @@ def write_files(job_id: int, title: str, company: str,
 
     with open(os.path.join(folder_path, "cover_letter.md"), "w", encoding="utf-8") as f:
         f.write(cover_letter_md)
+
+    with open(os.path.join(folder_path, "framing_notes.md"), "w", encoding="utf-8") as f:
+        f.write(framing_notes)
 
     resume_docx = convert_to_docx(os.path.join(folder_path, "resume.md"))
     cover_letter_docx = convert_to_docx(os.path.join(folder_path, "cover_letter.md"))
@@ -102,9 +107,9 @@ def run() -> None:
     print(f"Found {len(approved)} approved draft(s) to write out.")
 
     written_paths = []
-    for draft_id, job_id, resume_md, cover_letter_md, title, company in approved:
+    for draft_id, resume_md, cover_letter_md, framing_notes, title, company in approved:
         folder_path, resume_docx, cover_letter_docx = write_files(
-            job_id, title, company, resume_md, cover_letter_md
+            draft_id, title, company, resume_md, cover_letter_md, framing_notes
         )
         written_paths.append(folder_path)
         print(f"  wrote {folder_path}")

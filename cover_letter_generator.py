@@ -1,56 +1,78 @@
 """
-Generates a cover letter (Markdown/plain text) based on the tailored resume
-produced by resume_generator.py, plus the full profile doc for tone/guideline
-rules that don't live in the resume itself (word count, phrases to avoid, etc).
-
-Takes the RESUME as primary input (not just the raw profile) so the letter
-stays consistent with whatever was emphasized/reordered for this job.
+Generates a cover letter based on the tailored resume + framing notes
+produced by resume_generator.py, so the letter stays consistent with
+whatever framing decision was made for this specific posting.
 """
 import os
 import anthropic
 
-from resume_generator import load_profile_doc, PROFILE_DOC_PATH
+from resume_generator import load_profile_doc, load_master_resume, PROFILE_DOC_PATH
 
 COVER_LETTER_SYSTEM_PROMPT = """You are writing a cover letter for a specific job posting.
-You are given the candidate's tailored resume for this exact posting, plus their
-full profile document which contains hard tone/content rules. Follow the profile
-doc's "Cover Letter Guidelines" section exactly — those rules override any
-default instinct you have about cover letter writing.
+You are given: the candidate's tailored resume for this posting, the framing
+notes explaining what was emphasized and why, the candidate's profile
+document (career context and additional tone guardrails), and the job
+posting itself.
 
-HARD RULES:
-- Under 400 words. Count matters — do not exceed it.
-- Confident but not arrogant. No bold closing gimmicks ("only X people applied").
-- Be honest about tool/skill gaps rather than glossing over them — frame as
-  "newer to X specifically but familiar with the underlying patterns."
-- Never claim a title the candidate did not formally hold.
-- Never reproduce specific confidential company metrics from the profile doc's
-  employer-specific context (numbers tied to the current employer) — it's fine
-  to reference accomplishments in general terms if the profile doc itself
-  already treats them as usable, verified metrics, but do not invent new ones
-  or add employer-confidential specifics beyond what's already in the resume.
-- Base every claim on what's in the tailored resume provided — do not pull
-  in resume content that was deliberately left out for this posting.
-- Frame the reason for leaving positively, per the profile doc's guidance.
+HARD RULES — violating any of these is a failure:
 
-Output ONLY the cover letter text. No preamble, no commentary, no subject line.
+1. FORMAT
+   - Maximum one page (roughly 350-450 words — err shorter, not longer).
+   - No em dashes, no en dashes, no contractions (write "do not" not "don't",
+     "I am" not "I'm").
+   - Professional grammar throughout.
+
+2. CONTENT
+   - Lead with the core differentiator when it fits naturally, e.g. framing
+     around building AI solutions AND driving real adoption of them —
+     pull the actual differentiator from the profile doc / resume rather
+     than inventing one.
+   - Tailor the framing to match whatever framing decision is documented in
+     the framing notes (internal enablement vs. customer-facing vs. sales
+     engineering, etc.) — stay consistent with the resume, don't introduce
+     a different angle.
+   - Use specific evidence pulled from the tailored resume to support every
+     claim. Do not introduce new facts, metrics, or claims that aren't in
+     the resume or profile doc.
+   - Never hedge with filler like "I hope this covers it" or similar.
+   - Never claim a title the candidate did not formally hold.
+   - Never say "the past several years" for AI experience — use accurate
+     duration per the profile doc.
+   - Be honest about any tool or experience gaps named in the framing notes
+     rather than glossing over them — frame as familiarity with underlying
+     patterns where that's true, or acknowledge the gap plainly where it
+     isn't.
+   - Never reproduce specific confidential employer metrics beyond what's
+     already treated as usable/verified in the resume and profile doc.
+   - Frame the reason for seeking a new role positively, per the profile
+     doc's guidance (seeking an IC-focused role centered on building and
+     teaching).
+
+Output ONLY the cover letter text. No preamble, no commentary, no subject
+line, no markdown headers.
 """
 
 
 def generate_cover_letter(job_title: str, company: str, job_description: str,
-                           tailored_resume_md: str,
+                           tailored_resume_md: str, framing_notes: str,
                            profile_doc: str | None = None) -> str:
     if profile_doc is None:
         profile_doc = load_profile_doc(PROFILE_DOC_PATH)
 
     client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
-    user_prompt = f"""CANDIDATE PROFILE DOCUMENT (contains cover letter guidelines):
+    user_prompt = f"""CANDIDATE PROFILE DOCUMENT:
 {profile_doc}
 
 ---
 
-TAILORED RESUME FOR THIS POSTING (base the letter on this, not the full profile):
+TAILORED RESUME FOR THIS POSTING:
 {tailored_resume_md}
+
+---
+
+FRAMING NOTES (stay consistent with this framing decision):
+{framing_notes}
 
 ---
 
@@ -77,19 +99,22 @@ Write the cover letter now."""
 if __name__ == "__main__":
     from resume_generator import generate_resume
 
-    resume = generate_resume(
+    resume_md, framing_notes = generate_resume(
         job_title="AI Automation Engineer",
         company="TestCo",
         job_description="We're looking for someone to build agentic workflows "
                          "connecting internal tools, with a focus on human-in-the-loop "
-                         "review and no-code/low-code automation platforms.",
+                         "review and no-code/low-code automation platforms. This role "
+                         "is internal-facing, supporting our own ops and data teams.",
     )
     letter = generate_cover_letter(
         job_title="AI Automation Engineer",
         company="TestCo",
         job_description="We're looking for someone to build agentic workflows "
                          "connecting internal tools, with a focus on human-in-the-loop "
-                         "review and no-code/low-code automation platforms.",
-        tailored_resume_md=resume,
+                         "review and no-code/low-code automation platforms. This role "
+                         "is internal-facing, supporting our own ops and data teams.",
+        tailored_resume_md=resume_md,
+        framing_notes=framing_notes,
     )
     print(letter)
