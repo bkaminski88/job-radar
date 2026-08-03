@@ -3,3 +3,18 @@ __pycache__/
 *.pyc
 .venv/
 venv/
+
+# OS / editor artifacts
+desktop.ini
+.DS_Store
+Thumbs.db
+
+# Personal job-search data — keep local, never commit.
+# Copy profile.example.md / master_resume.example.md and fill in your own details.
+profile.md
+master_resume.md
+brian_kaminski_profile.md
+brian_kaminski_master_resume_v1_5_1.md
+
+# Generated application documents
+outputs/

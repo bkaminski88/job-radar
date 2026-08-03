@@ -69,20 +69,66 @@ this job before" state survives between runs.
    ```
 2. Create a Discord webhook: *Server Settings → Integrations → Webhooks →
    New Webhook*, then copy the URL.
-3. Copy `.env.example` to `.env` and paste your webhook URL in.
+3. Copy `.env.example` to `.env` and fill in your webhook URL, `ANTHROPIC_API_KEY`,
+   and `SALARY_FLOOR`.
 4. Edit `companies.json` to adjust which companies/keywords to track.
-5. Run it:
+5. Edit `profile.json` to set your target titles, red flags, and avoid-list.
+6. Run it:
    ```
    python main.py
    ```
 
+### Why the salary floor is an env var
+
+`profile.json` is committed, and your compensation floor is personal — so it is read
+from `SALARY_FLOOR` instead, the same way API keys are. `load_profile()` overlays it
+onto the loaded profile, so nothing downstream changes.
+
+If `SALARY_FLOOR` is unset the key is simply absent and salary filtering is skipped —
+no crash, no silent `$0` floor. Postings with no salary listed are never rejected on
+this basis either way; only a posting whose highest posted figure falls below the
+floor is cut. Accepts `115000`, `115,000` or `$115,000`.
+
+### Personal documents (Stage 3 only)
+
+Stage 3 drafting reads two documents that hold personal data — your career profile
+and your master resume. Both are **gitignored and never committed**. Copy the
+templates and fill them in:
+
+```
+cp profile.example.md profile.md
+cp master_resume.example.md master_resume.md
+```
+
+`main.py` (the scheduled fetch/score/notify run) does not need these — it only reads
+`profile.json`. Only the Stage 3 drafting scripts do.
+
+Paths can be overridden with the `PROFILE_DOC_PATH` and `MASTER_RESUME_PATH`
+environment variables.
+
 ### Deploying the scheduled version
 
 1. Push this repo to GitHub.
-2. In repo settings → *Secrets and variables → Actions*, add a secret named
-   `DISCORD_WEBHOOK_URL` with your webhook URL.
+2. In repo settings → *Secrets and variables → Actions*, add these secrets:
+
+   | Secret | Needed for |
+   |---|---|
+   | `DISCORD_WEBHOOK_URL` | notifications |
+   | `ANTHROPIC_API_KEY` | Stage 2 LLM scoring |
+   | `SALARY_FLOOR` | salary filtering (optional — skipped if unset) |
+   | `PROFILE_DOC` | Stage 3 drafting |
+   | `MASTER_RESUME` | Stage 3 drafting |
+
 3. The workflow in `.github/workflows/job-check.yml` runs daily at 13:00 UTC
    and can also be triggered manually from the Actions tab.
+
+To run Stage 3 drafting in Actions, the personal documents have to reach the runner
+without being in the repo. Add two more repository secrets — `PROFILE_DOC` and
+`MASTER_RESUME` — pasting the full contents of `profile.md` and `master_resume.md` as
+the values (Actions secrets accept multiline values). The *Materialize personal
+documents* workflow step writes them to disk before the run, and skips silently if
+they aren't set. Because both filenames are gitignored, the *Persist database* step
+cannot commit them back by accident.
 
 ## Known limitations / honest caveats
 

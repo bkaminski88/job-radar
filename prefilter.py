@@ -23,6 +23,7 @@ Usage:
 from __future__ import annotations
 
 import json
+import os
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -34,9 +35,42 @@ class PrefilterResult:
     reasons: list[str] = field(default_factory=list)  # why rejected, or notes if passed
 
 
+def _salary_floor_from_env() -> int | None:
+    """Reads the salary floor from SALARY_FLOOR, or None if unset/blank.
+
+    Kept out of profile.json so the committed config carries no personal
+    compensation data. Accepts '115000', '115,000' or '$115,000'.
+    """
+    raw = os.environ.get("SALARY_FLOOR", "").strip()
+    if not raw:
+        return None
+    cleaned = raw.replace("$", "").replace(",", "").replace("_", "")
+    try:
+        return int(cleaned)
+    except ValueError:
+        raise ValueError(
+            f"SALARY_FLOOR must be a whole number (e.g. 115000), got {raw!r}. "
+            f"Unset it to disable salary filtering entirely."
+        ) from None
+
+
 def load_profile(path: str | Path = "profile.json") -> dict:
+    """Loads profile.json, overlaying the salary floor from the environment.
+
+    The floor is personal data, so it lives in SALARY_FLOOR (env / .env locally,
+    a repository secret in CI) rather than in the committed JSON. If it is unset,
+    the key stays absent and salary filtering is simply skipped.
+    """
     with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+        profile = json.load(f)
+
+    floor = _salary_floor_from_env()
+    if floor is not None:
+        profile["salary_floor"] = floor
+    else:
+        profile.pop("salary_floor", None)
+
+    return profile
 
 
 def _contains_any(text: str, phrases: list[str]) -> list[str]:

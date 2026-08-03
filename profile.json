@@ -34,7 +34,7 @@
     "hybrid"
   ],
   "remote_allow_if_hybrid_in_area": ["Atlanta", "Georgia", "GA"],
-  "salary_floor": 115000,
+  "_salary_floor_comment": "Set via the SALARY_FLOOR env var, not here — it is personal data. Unset means no salary filtering.",
   "red_flag_phrases": [
     "fast-paced",
     "fast paced",

@@ -9,15 +9,19 @@ what was cut, and how any gaps or access boundaries were handled. This gets
 stored alongside the resume/cover letter so you can sanity-check the
 tailoring logic at a glance before approving.
 
-Source of truth for resume content: brian_kaminski_master_resume_v1_5_1.md
-(or whatever MASTER_RESUME_PATH points to). Source of truth for tone/career
-context: brian_kaminski_profile.md.
+Source of truth for resume content: master_resume.md (or whatever
+MASTER_RESUME_PATH points to). Source of truth for tone/career context:
+profile.md.
+
+Both files hold personal data and are gitignored — see profile.example.md and
+master_resume.example.md for the expected structure. In CI they are materialized
+from repository secrets; see .github/workflows/job-check.yml.
 """
 import os
 import anthropic
 
-PROFILE_DOC_PATH = "brian_kaminski_profile.md"
-MASTER_RESUME_PATH = "brian_kaminski_master_resume_v1_5_1.md"
+PROFILE_DOC_PATH = os.environ.get("PROFILE_DOC_PATH", "profile.md")
+MASTER_RESUME_PATH = os.environ.get("MASTER_RESUME_PATH", "master_resume.md")
 
 RESUME_SYSTEM_PROMPT = """You are tailoring a resume for a specific job posting.
 You will be given a MASTER RESUME (the only source of resume content) and a
@@ -87,14 +91,32 @@ HARD RULES — violating any of these is a failure:
 """
 
 
+def _read_personal_doc(path: str, example: str) -> str:
+    """Reads a gitignored personal document, with a pointed error if it's absent.
+
+    These files never live in the repo, so "file not found" is the expected
+    first-run experience both locally and in CI — say what to do about it.
+    """
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return f.read()
+    except FileNotFoundError:
+        raise FileNotFoundError(
+            f"{path} not found. It holds personal data and is gitignored, so it is "
+            f"never checked in.\n"
+            f"  Locally: cp {example} {path} and fill it in.\n"
+            f"  In CI:   set the PROFILE_DOC / MASTER_RESUME repository secrets — the "
+            f"workflow writes them to disk before running (see "
+            f".github/workflows/job-check.yml)."
+        ) from None
+
+
 def load_profile_doc(path: str = PROFILE_DOC_PATH) -> str:
-    with open(path, "r", encoding="utf-8") as f:
-        return f.read()
+    return _read_personal_doc(path, "profile.example.md")
 
 
 def load_master_resume(path: str = MASTER_RESUME_PATH) -> str:
-    with open(path, "r", encoding="utf-8") as f:
-        return f.read()
+    return _read_personal_doc(path, "master_resume.example.md")
 
 
 def _parse_resume_response(raw_text: str) -> tuple[str, str]:

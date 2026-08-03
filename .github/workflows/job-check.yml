@@ -25,9 +25,36 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      # profile.md and master_resume.md contain personal data and are gitignored,
+      # so they are not in the checkout. Stage 3 drafting needs them, so they are
+      # stored as repository secrets and written to disk here. Secrets support
+      # multiline values — paste each file's full contents as the secret value.
+      # Skipped automatically if the secrets aren't set; main.py doesn't need them.
+      - name: Materialize personal documents
+        env:
+          PROFILE_DOC: ${{ secrets.PROFILE_DOC }}
+          MASTER_RESUME: ${{ secrets.MASTER_RESUME }}
+        run: |
+          if [ -n "$PROFILE_DOC" ]; then
+            printf '%s' "$PROFILE_DOC" > profile.md
+            echo "Wrote profile.md ($(wc -c < profile.md) bytes)"
+          else
+            echo "PROFILE_DOC secret not set — skipping (only needed for Stage 3 drafting)"
+          fi
+          if [ -n "$MASTER_RESUME" ]; then
+            printf '%s' "$MASTER_RESUME" > master_resume.md
+            echo "Wrote master_resume.md ($(wc -c < master_resume.md) bytes)"
+          else
+            echo "MASTER_RESUME secret not set — skipping (only needed for Stage 3 drafting)"
+          fi
+
       - name: Run job radar
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Personal, so it lives in a secret rather than profile.json.
+          # If unset, salary filtering is skipped.
+          SALARY_FLOOR: ${{ secrets.SALARY_FLOOR }}
         run: python main.py
 
       - name: Persist database

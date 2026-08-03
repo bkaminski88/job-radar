@@ -58,10 +58,14 @@ class FitVerdict:
 
 def _condensed_profile_text(profile: dict) -> str:
     """Build a compact text block from profile.json for the prompt."""
+    # The floor comes from the SALARY_FLOOR env var, so it may legitimately be
+    # absent — say "not specified" rather than telling the model the floor is $0.
+    floor = profile.get("salary_floor")
+    floor_line = f"${floor:,}" if floor else "not specified"
     return (
         f"Target titles: {', '.join(profile.get('target_titles', []))}\n"
         f"Must be remote: {profile.get('remote_required')}\n"
-        f"Salary floor: ${profile.get('salary_floor', 0):,}\n"
+        f"Salary floor: {floor_line}\n"
         f"Avoid titles containing: {', '.join(profile.get('avoid_title_keywords', []))}\n"
         f"Red flag culture phrases to watch for: {', '.join(profile.get('red_flag_phrases', []))}\n"
         "Candidate background: builder and teacher; ~2 years hands-on AI enablement, "
