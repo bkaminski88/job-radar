@@ -14,7 +14,8 @@ import os
 import requests
 
 REQUEST_TIMEOUT = 10
-DISCORD_BATCH_LIMIT = 10  # keep messages readable; split larger batches
+DISCORD_CONTENT_LIMIT = 2000  # Discord's hard limit on a message's `content` field
+DISCORD_SAFETY_MARGIN = 100  # headroom for the header line, emoji, and count digits
 
 
 def _format_job_line(job: dict) -> str:
@@ -34,9 +35,40 @@ def _format_job_line(job: dict) -> str:
     return line
 
 
+def _batch_job_lines(jobs: list[dict]) -> list[list[str]]:
+    """
+    Group formatted job lines into batches that fit Discord's 2000-char
+    content limit. A fixed job-count-per-batch doesn't guarantee this once
+    real LLM reasoning text is involved (a handful of verbose jobs alone can
+    exceed 2000 chars), so batch by rendered size instead.
+    """
+    max_len = DISCORD_CONTENT_LIMIT - DISCORD_SAFETY_MARGIN
+    batches: list[list[str]] = []
+    current: list[str] = []
+    current_len = 0
+
+    for job in jobs:
+        line = _format_job_line(job)
+        if len(line) > max_len:
+            # One job's own content is pathologically long (e.g. runaway LLM
+            # reasoning) — truncate defensively so it can still be sent.
+            line = line[: max_len - 1] + "…"
+        sep_len = 2 if current else 0  # "\n\n" between entries
+        if current and current_len + sep_len + len(line) > max_len:
+            batches.append(current)
+            current, current_len, sep_len = [], 0, 0
+        current.append(line)
+        current_len += sep_len + len(line)
+
+    if current:
+        batches.append(current)
+    return batches
+
+
 def send_discord_notification(jobs: list[dict], webhook_url: str | None = None) -> None:
     """
-    Post one message per batch of jobs to keep things readable in Discord.
+    Post one message per batch of jobs, sized to stay under Discord's
+    2000-char content limit.
     """
     webhook_url = webhook_url or os.environ.get("DISCORD_WEBHOOK_URL")
     if not webhook_url:
@@ -49,13 +81,8 @@ def send_discord_notification(jobs: list[dict], webhook_url: str | None = None) 
         print("No new jobs to notify about.")
         return
 
-    # Discord messages have a 2000-char limit; batch a handful per message
-    # rather than firing one HTTP request per single job.
-    for i in range(0, len(jobs), DISCORD_BATCH_LIMIT):
-        batch = jobs[i : i + DISCORD_BATCH_LIMIT]
-        content = f"\U0001F514 **{len(batch)} new job(s) found:**\n\n" + "\n\n".join(
-            _format_job_line(j) for j in batch
-        )
+    for batch in _batch_job_lines(jobs):
+        content = f"\U0001F514 **{len(batch)} new job(s) found:**\n\n" + "\n\n".join(batch)
         try:
             resp = requests.post(
                 webhook_url, json={"content": content}, timeout=REQUEST_TIMEOUT
