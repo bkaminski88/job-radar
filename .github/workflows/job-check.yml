@@ -55,6 +55,9 @@ jobs:
           # Personal, so it lives in a secret rather than profile.json.
           # If unset, salary filtering is skipped.
           SALARY_FLOOR: ${{ secrets.SALARY_FLOOR }}
+          # Force stdout to flush immediately so per-job progress shows up
+          # live in the Actions log instead of appearing all at once at exit.
+          PYTHONUNBUFFERED: "1"
         run: python main.py
 
       - name: Persist database
