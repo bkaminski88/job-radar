@@ -1,0 +1,24 @@
+name: Test Discord Notification
+
+on:
+  workflow_dispatch: {}  # manual trigger only — Actions tab -> Test Discord Notification -> Run workflow
+
+jobs:
+  test-notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Send test notification
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: python send_test_notification.py
