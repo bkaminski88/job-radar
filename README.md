@@ -4,9 +4,10 @@ A scheduled automation that monitors company job boards (via their public ATS
 APIs) for new AI/automation-related postings and alerts me on Discord —
 no scraping, no manual checking.
 
-This is stage 1 of a 3-stage personal project arc exploring AI/workflow
-automation, going from plain workflow automation (this repo) → LLM-based
-classification/scoring → a tool-using agent with human-in-the-loop approval.
+This is a 3-stage personal project arc exploring AI/workflow automation, going
+from plain workflow automation → LLM-based classification/scoring → a
+tool-using agent with human-in-the-loop approval. All three stages are built;
+see [Pipeline stages](#pipeline-stages) for what's automated vs. run by hand.
 
 ## The problem
 
@@ -41,6 +42,18 @@ Runs on a daily schedule via **GitHub Actions** — no server to host or pay
 for. Since Actions runs are ephemeral (a fresh container every time), the
 SQLite file is committed back to the repo after each run so "have I seen
 this job before" state survives between runs.
+
+## Pipeline stages
+
+| Stage | What it does | Automation |
+|---|---|---|
+| **1 — Fetch/filter/dedupe/notify** | Described above: `sources.py` → `prefilter.py` → `db.py` → `notify.py` | Runs daily via `job-check.yml` |
+| **2 — LLM scoring** | `llm_classifier.py` sends each new posting to Claude for structured scoring (1–10, recommendation, reasoning, flags); `fit_pipeline.py` combines it with Stage 1's rule-based prefilter and decides whether to alert | Wired into `main.py`, so it also runs daily via `job-check.yml` |
+| **3 — Agentic drafting** | `draft_pipeline.py` generates a tailored resume + cover letter for postings that score 7+, posts them to Discord with 👍/👎 reactions for approval; `check_approvals.py` polls for the reaction; `execute_approved.py` writes approved drafts to `outputs/` | Standalone scripts, run manually — not wired into any scheduled workflow |
+
+Nothing is ever emailed, submitted, or sent to an employer automatically —
+Stage 3 stops at "drafted and approved," the actual application is still a
+human action.
 
 ## Design decisions worth calling out
 
@@ -137,10 +150,9 @@ cannot commit them back by accident.
   The script logs a clear warning for any board that 404s rather than
   failing silently; check the Actions logs after your first run and fix
   any mismatched tokens.
-- Keyword matching is a simple case-insensitive substring check. It's
-  intentionally crude — stage 2 of this project replaces it with an LLM
-  classification step that reads the actual job description and extracts
-  structured fields (seniority, tech stack, remote policy, fit score).
+- Stage 1's keyword filter is a simple case-insensitive substring check.
+  That's intentional, not a placeholder — it's a cheap gate that runs before
+  every posting reaches Stage 2's LLM call, not a substitute for it.
 - This only covers companies using Greenhouse or Lever. Companies on other
   ATS platforms (or with fully custom career sites) aren't covered — adding
   another source (e.g. Ashby, which also has a public API) would be a
@@ -148,13 +160,14 @@ cannot commit them back by accident.
 
 ## Stack
 
-Python 3.12 · `requests` · SQLite · GitHub Actions · Discord webhooks
+Python 3.12 · `requests` · SQLite · Anthropic Claude · GitHub Actions · Discord
+webhooks (+ bot API for Stage 3 reaction polling)
 
-## What's next (stages 2–3)
+## Known gap
 
-- **Stage 2:** add an LLM step that reads each matching job description and
-  extracts structured data (salary, seniority, stack, remote policy) and
-  scores it against my own resume/criteria using structured output.
-- **Stage 3:** an agentic layer that takes the next action on high-fit
-  roles (e.g. drafting a tailored outreach note) with a human-approval
-  step before anything is ever sent.
+`execute_approved.py` writes approved drafts to `outputs/` and git-commits
+them — that commit step is currently a no-op, because `outputs/` is
+gitignored (it previously held test fixtures with personal data that didn't
+belong in a public repo). Real approved drafts need a storage location that
+isn't "auto-committed into a public repository," which hasn't been decided
+yet — this is a known, open gap, not a regression to work around silently.
